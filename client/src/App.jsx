@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./Home";
-import About from "./About";
-import SignIn from "./SignIn";
-import SignUp from "./SignUp";
-import Profile from "./Profile";
-import Header from '../componets/Header'
+import Home from "./pages/Home.jsx";
+import About from "./pages/About.jsx";
+import SignIn from "./pages/SignIn.jsx";
+import SignUp from "./pages/SignUp.jsx";
+import Profile from "./pages/Profile.jsx";
+import Header from './componets/Header.jsx'
 
 
 
@@ -20,5 +20,7 @@ export default function App() {
       </Routes>
   </BrowserRouter>;
 }
+
+
 
 

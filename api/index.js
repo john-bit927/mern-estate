@@ -16,7 +16,8 @@ mongoose
 const app = express();
 
 // ✅ Enable CORS to prevent frontend request blocking
-app.use(cors({ origin: "http://localhost:5174", credentials: true }));
+app.use(cors({ origin: "http://localhost:5175", credentials: true }));
+
 
 // ✅ Parse JSON requests
 app.use(express.json());

@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from "react-router-dom";
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
-    username: "user00",
-    email: "user1@yahoo.com",
-    password: "user66353",
+    username: "",
+    email: "",
+    password: "",
   });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // 👈 Hook for redirecting
 
   const handleChange = (e) => {
     setFormData({
@@ -23,10 +23,11 @@ export default function SignUp() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setLoading(true); // Start loading
 
     try {
-      console.log("Sending signup request with data:", formData); // Log request data
-      setLoading(true);
+      console.log("Sending signup request with data:", formData);
+
       const res = await fetch("http://localhost:3000/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -34,27 +35,23 @@ export default function SignUp() {
       });
 
       const data = await res.json();
-      if(data.success == false) {
-        setLoading(false);
-        setError(data.message);
-        return;
-      }
-
-      setLoading(false);
-      setError(null);
-      navigate("/sign-in");
-   
+      console.log("Signup response:", data);
 
       if (!res.ok) {
         throw new Error(data.message || "Signup failed");
       }
 
-      setSuccess("Signup successful! You can now log in.");
+      setSuccess("Signup successful! Redirecting to Sign In...");
       setFormData({ username: "", email: "", password: "" });
+
+      setTimeout(() => {
+        navigate("/sign-in"); // 👈 Redirect to Sign In after 2 sec
+      }, 2000);
     } catch (err) {
-      setLoading(false);
-      console.error("Signup error:", err.message); // Log error message
+      console.error("Signup error:", err.message);
       setError(err.message);
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
@@ -87,8 +84,13 @@ export default function SignUp() {
           className="border p-3 rounded-lg"
           value={formData.password}
           onChange={handleChange}
+          autoComplete="new password"
         />
-        <button disabled={loading} className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80">
+        <button
+          type="submit"
+          className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80"
+          disabled={loading}
+        >
           {loading ? "Signing up..." : "Sign up"}
         </button>
       </form>

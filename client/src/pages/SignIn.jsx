@@ -1,20 +1,14 @@
 import { useState } from "react";
-import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from "react-redux";
-import { signInStart, signInSuccess, signInFailure } from "../redux/user/userSlice.js";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function SignIn() {
   const [formData, setFormData] = useState({
-    username: "",
     email: "",
     password: "",
   });
-
-
-  const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const navigate = useNavigate(); // ✅ Navigation hook
 
   const handleChange = (e) => {
     setFormData({
@@ -29,9 +23,8 @@ export default function SignIn() {
     setSuccess(null);
 
     try {
-      setLoading(true)
-      console.log("Sending signup request with data:", formData); // Log request data
-      dispatch(signInStart());
+      console.log("Sending signin request with data:", formData);
+
       const res = await fetch("http://localhost:3000/api/auth/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -39,23 +32,23 @@ export default function SignIn() {
       });
 
       const data = await res.json();
-      if(data.success == false) {
-        dispatch(signInFailure(data.message));
-        return;
-      }
-
-      dispatch(signInSuccess(data));
-      navigate("/");
-   
+      console.log("Signin response:", data);
 
       if (!res.ok) {
         throw new Error(data.message || "Signin failed");
       }
 
-      setSuccess("Signup successful! You can now log in.");
-      setFormData({ username: "", email: "", password: "" });
+      // ✅ Store user authentication data (if needed)
+      localStorage.setItem("user", JSON.stringify(data.user)); // Store user details
+      localStorage.setItem("token", data.token); // Store token (if your API provides one)
+
+      setSuccess("Login successful! Welcome back.");
+      navigate("/"); // ✅ Redirect to Home page
+
+      setFormData({ email: "", password: "" });
     } catch (err) {
-     dispatch(signInFailure(err.message));
+      console.error("Signin error:", err.message);
+      setError(err.message);
     }
   };
 
@@ -65,7 +58,7 @@ export default function SignIn() {
       {error && <p className="text-red-500 text-center">{error}</p>}
       {success && <p className="text-green-500 text-center">{success}</p>}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-       
+        
         <input
           type="email"
           name="email"
@@ -73,6 +66,7 @@ export default function SignIn() {
           className="border p-3 rounded-lg"
           value={formData.email}
           onChange={handleChange}
+          required
         />
         <input
           type="password"
@@ -81,9 +75,13 @@ export default function SignIn() {
           className="border p-3 rounded-lg"
           value={formData.password}
           onChange={handleChange}
+          required
         />
-        <button disabled={loading} className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80">
-          {loading ? "Signing in..." : "Sign in"}
+        <button
+          type="submit"
+          className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80"
+        >
+          Sign in
         </button>
       </form>
       <div className="flex gap-2 mt-5">

@@ -1,13 +1,28 @@
-import { configureStore } from "@reduxjs/toolkit";
-import userReducer from "./user/userSlice"; // Ensure correct file path
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
+import userReducer from "../../../client/src/redux/user/userSlice"; 
+import { persistStore, persistReducer } from 'redux-persist';
+import storage from 'redux-persist/lib/storage'; // defaults to localStorage for web and AsyncStorage for react
 
-const store = configureStore({
-  reducer: {
-    user: userReducer, // Use the correct reducer
-  },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware({
-    serializableCheck: false,
-  }),
+
+
+
+const rootReducer = combineReducers({user: userReducer})
+
+const persistConfig = {
+  key: 'root',
+  storage,
+  version: 1,
+}
+
+
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+export const store =  configureStore({
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 });
 
-export default store;
+export const persistor = persistStore(store);

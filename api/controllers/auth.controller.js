@@ -22,7 +22,8 @@ export const signup = async (req, res, next) => {
     const newUser = new User({ username, email, password: hashedPassword });
 
     await newUser.save();
-    res.status(201).json({ message: "User created successfully" });
+    res.status(201).json({ message: "Signup successful! You can now log in." });
+
   } catch (error) {
     console.error("❌ Signup Error:", error);
     next(error);
@@ -40,8 +41,10 @@ export const signin = async (req, res, next) => {
     const token = jwt.sign({ id: ValidUser._id}, process.env.JWT_SECRET)
     const { password: pass, ...rest } = ValidUser._doc;
     res.cookie('access_token', token, {httpOnly: true })
-    .status(300)
-    .json(rest)
+    .status(200)
+
+    .json({ message: "Login successful! Welcome back.", ...rest });
+
 
   } catch (error) {
     next(error); // ✅ Corrected spelling
