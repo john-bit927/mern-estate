@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
+    username: "user00",
+    email: "user1@yahoo.com",
+    password: "user66353",
   });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);

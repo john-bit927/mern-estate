@@ -5,6 +5,7 @@ import cors from "cors";
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
 
+
 dotenv.config();
 
 mongoose
