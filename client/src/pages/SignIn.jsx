@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import OAuth from "../componets/OAuth";
+import { signInFailure, signInStart, signInSuccess } from "../redux/user/userSlice";
 
 export default function SignIn() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+  const dispatch = useDispatch();
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const navigate = useNavigate(); // ✅ Navigation hook
@@ -24,7 +28,7 @@ export default function SignIn() {
 
     try {
       console.log("Sending signin request with data:", formData);
-
+      dispatch(signInStart());
       const res = await fetch("http://localhost:3000/api/auth/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -34,16 +38,19 @@ export default function SignIn() {
       const data = await res.json();
       console.log("Signin response:", data);
 
-      if (!res.ok) {
-        throw new Error(data.message || "Signin failed");
+      if(data.success === false) {
+        dispatch(signInFailure(data.message));
+        return;
       }
+      dispatch(signInSuccess(data));
+      navigate('/');
 
       // ✅ Store user authentication data (if needed)
       localStorage.setItem("user", JSON.stringify(data.user)); // Store user details
       localStorage.setItem("token", data.token); // Store token (if your API provides one)
 
       setSuccess("Login successful! Welcome back.");
-      navigate("/"); // ✅ Redirect to Home page
+
 
       setFormData({ email: "", password: "" });
     } catch (err) {
@@ -83,6 +90,7 @@ export default function SignIn() {
         >
           Sign in
         </button>
+        <OAuth/>
       </form>
       <div className="flex gap-2 mt-5">
         <p>Don't have an account?</p>
