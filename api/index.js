@@ -37,4 +37,9 @@ app.use((err, _req, res, _next) => {
   });
 });
 
+app.use(cors({
+  origin: "http://localhost:5175", // 👈 Change this to match your frontend
+  credentials: true, // Allow cookies and authentication headers
+}));
+
 app.listen(3000, () => console.log("🚀 Server is running on port 3000!"));

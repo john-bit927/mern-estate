@@ -9,10 +9,12 @@ export default function SignIn() {
     email: "",
     password: "",
   });
+
   const dispatch = useDispatch();
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const navigate = useNavigate(); // ✅ Navigation hook
+  const [isDisabled, setIsDisabled] = useState(false); // ✅ New state to disable button
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({
@@ -25,9 +27,9 @@ export default function SignIn() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setIsDisabled(true); // ✅ Disable button when submitting
 
     try {
-      console.log("Sending signin request with data:", formData);
       dispatch(signInStart());
       const res = await fetch("http://localhost:3000/api/auth/signin", {
         method: "POST",
@@ -38,24 +40,33 @@ export default function SignIn() {
       const data = await res.json();
       console.log("Signin response:", data);
 
-      if(data.success === false) {
+      if (data.success === false) {
         dispatch(signInFailure(data.message));
+        setIsDisabled(false); // ✅ Re-enable if there's an error
         return;
       }
+
       dispatch(signInSuccess(data));
       navigate('/');
 
-      // ✅ Store user authentication data (if needed)
-      localStorage.setItem("user", JSON.stringify(data.user)); // Store user details
-      localStorage.setItem("token", data.token); // Store token (if your API provides one)
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+      } else {
+        console.error("No token received from server");
+      }
 
-      setSuccess("Login successful! Welcome back.");
+      setSuccess("Login successful! Redirecting...");
 
+      // ✅ Keep button disabled for 2 seconds before redirecting
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
 
-      setFormData({ email: "", password: "" });
     } catch (err) {
       console.error("Signin error:", err.message);
       setError(err.message);
+      setIsDisabled(false); // ✅ Re-enable button on error
     }
   };
 
@@ -87,8 +98,9 @@ export default function SignIn() {
         <button
           type="submit"
           className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80"
+          disabled={isDisabled} // ✅ Disable button conditionally
         >
-          Sign in
+          {isDisabled ? "Signing In..." : "Sign in"} 
         </button>
         <OAuth/>
       </form>
