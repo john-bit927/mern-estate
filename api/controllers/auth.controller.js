@@ -36,21 +36,25 @@ export const signin = async (req, res, next) => {
   try {
     const ValidUser = await User.findOne({ email });
     if (!ValidUser) return next(errorHandler(404, "User not found!"));
+
     const validPassword = bcryptjs.compareSync(password, ValidUser.password);
-    if (!validPassword) return next(errorHandler(401, "Wrong credential!"));
-    const token = jwt.sign({ id: ValidUser._id}, process.env.JWT_SECRET)
+    if (!validPassword) return next(errorHandler(401, "Wrong credentials!"));
+
+    const token = jwt.sign({ id: ValidUser._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
     const { password: pass, ...rest } = ValidUser._doc;
-    res.cookie('access_token', token, {httpOnly: true })
-    .status(200)
 
-    .json({ message: "Login successful! Welcome back.", ...rest });
-
-
+    res
+      .cookie("access_token", token, { httpOnly: true, secure: false }) // ✅ Ensure cookie storage
+      .status(200)
+      .json({ token, user: rest }); // ✅ Ensure token is sent
   } catch (error) {
-    next(error); // ✅ Corrected spelling
-}
-
+    next(error);
+  }
 };
+
+
+
 
 
 export const google = async (req, res, next) => {
@@ -79,3 +83,5 @@ export const google = async (req, res, next) => {
     next(error);
   }
 }
+
+

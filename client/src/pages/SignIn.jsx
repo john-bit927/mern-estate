@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import OAuth from "../componets/OAuth";
+import OAuth from "../components/OAuth";
 import { signInFailure, signInStart, signInSuccess } from "../redux/user/userSlice";
 
 export default function SignIn() {
@@ -27,49 +27,42 @@ export default function SignIn() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setIsDisabled(true); // ✅ Disable button when submitting
-
+  
     try {
       dispatch(signInStart());
-      const res = await fetch("http://localhost:3000/api/auth/signin", {
+      const res = await fetch("http://localhost:5175/api/auth/signin", { // ✅ Ensure backend port is correct
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-
+  
       const data = await res.json();
-      console.log("Signin response:", data);
-
-      if (data.success === false) {
-        dispatch(signInFailure(data.message));
-        setIsDisabled(false); // ✅ Re-enable if there's an error
-        return;
+      console.log("Signin response:", data); // 🔍 Debugging response
+  
+      if (!res.ok || !data.token) {
+        throw new Error(data.message || "Failed to sign in");
       }
-
+  
       dispatch(signInSuccess(data));
-      navigate('/');
-
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-      } else {
-        console.error("No token received from server");
-      }
-
+  
+      // ✅ Store token correctly
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+  
+      console.log("Token stored in localStorage:", data.token); // ✅ Debugging token storage
+  
       setSuccess("Login successful! Redirecting...");
-
-      // ✅ Keep button disabled for 2 seconds before redirecting
+  
       setTimeout(() => {
         navigate("/");
       }, 2000);
-
+  
     } catch (err) {
       console.error("Signin error:", err.message);
       setError(err.message);
-      setIsDisabled(false); // ✅ Re-enable button on error
-    }
+    };
   };
-
+  
   return (
     <div className="p-3 max-w-lg mx-auto">
       <h1 className="text-3xl text-center font-semibold my-7">Sign In</h1>
