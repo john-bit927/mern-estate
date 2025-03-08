@@ -1,29 +1,44 @@
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from "firebase/storage";
 import { app } from "../firebase";
-import { updateUserStart, updateUserSuccess, updateUserFailure, deleteUserFailure, deleteUserStart, signOutUserStart, deleteUserSuccess } from "../redux/user/userSlice";
+import {
+  updateUserStart,
+  updateUserSuccess,
+  updateUserFailure,
+  deleteUserFailure,
+  deleteUserStart,
+  deleteUserSuccess,
+  signOutUserStart,
+  signOutUserSuccess,
+  signOutUserFailure,
+} from "../redux/user/userSlice";
 
 export default function Profile() {
   const fileRef = useRef(null);
-  const [error] = useState(false);
   const { currentUser, loading } = useSelector((state) => state.user);
+  const [error, setError] = useState(null);
   const [file, setFile] = useState(undefined);
   const [filePerc, setFilePerc] = useState(0);
   const [fileUploadError, setFileUploadError] = useState(false);
   const [formData, setFormData] = useState({});
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [signOutLoading, setSignOutLoading] = useState(false);
   const dispatch = useDispatch();
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value });
-  };
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
     if (file) {
       handleFileUpload(file);
     }
   }, [file]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
 
   const handleFileUpload = (file) => {
     const storage = getStorage(app);
@@ -37,7 +52,7 @@ export default function Profile() {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         setFilePerc(Math.round(progress));
       },
-      (error) => {
+      () => {
         setFileUploadError(true);
       },
       () => {
@@ -48,77 +63,102 @@ export default function Profile() {
     );
   };
 
-  const token = localStorage.getItem("token"); // ✅ Get token from localStorage
-
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent default form submission
-  
-    dispatch(updateUserStart()); // Start loading state
-  
-    // ⏳ Set loading to last at least 2 seconds
+    e.preventDefault();
+    dispatch(updateUserStart());
+
     setTimeout(async () => {
       try {
-        const token = localStorage.getItem("token");
         if (!token) {
-          console.error("No token found. User is not authenticated.");
           dispatch(updateUserFailure("No token found"));
           return;
         }
-  
-        const res = await fetch(`http://localhost:5175/api/user/update/${currentUser._id}`, {
-          method: "POSTR",
+
+        const res = await fetch(`http://localhost:3000/api/user/update/${currentUser._id}`, {
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(formData),
         });
-  
+
         const data = await res.json();
         if (!res.ok) {
           throw new Error(data.message || "Failed to update profile");
         }
-  
+
         dispatch(updateUserSuccess(data.data));
         setUpdateSuccess(true);
       } catch (error) {
         dispatch(updateUserFailure(error.message));
-        console.error("Profile update error:", error.message);
       }
-    }, 2000); // ⏳ Wait for 2 seconds before continuing
+    }, 2000);
   };
-  
+
   const handleDeleteUser = async () => {
+    if (deleteLoading) return;
+    setDeleteLoading(true);
+    dispatch(deleteUserStart());
+
     try {
-      dispatch(deleteUserStart());
-      const res = await fetch(`/api/user/delete/${currentUser._id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if(data.success === false) {
-        dispatch(deleteUserFailure(data.message));
+      if (!token) {
+        dispatch(deleteUserFailure("No token found"));
+        setDeleteLoading(false);
         return;
       }
-      dispatch(deleteUserSuccess(data));
+
+      const res = await fetch(`http://localhost:3000/api/user/delete/${currentUser._id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to delete user");
+      }
+
+      dispatch(deleteUserSuccess());
+      setTimeout(() => {
+        navigate("/sign-in");
+      }, 2000);
     } catch (error) {
-      dispatch(deleteUserFailure(error.message))
+      dispatch(deleteUserFailure(error.message));
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
   const handleSignOut = async () => {
+    if (signOutLoading) return;
+    setSignOutLoading(true);
+    dispatch(signOutUserStart());
+
     try {
-      dispatch(signOutUserStart());
-      const res = await fetch('/api/user/signout');
-      const data = await res.json();
-      if(data.success === false) {
-        dispatch(deleteUserFailure(data.message));
-        return;
+      const res = await fetch("http://localhost:3000/api/user/signout", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to sign out");
       }
-      dispatch(deleteUserSuccess(data));
+
+      dispatch(signOutUserSuccess());
+      setTimeout(() => {
+        navigate("/sign-in");
+      }, 2000);
     } catch (error) {
-      dispatch(deleteUserFailure(data.message));  
+      dispatch(signOutUserFailure(error.message));
+    } finally {
+      setSignOutLoading(false);
     }
-  }
+  };
 
   return (
     <div className="p-3 max-w-lg mx-auto">
@@ -148,13 +188,24 @@ export default function Profile() {
         <button disabled={loading} className="bg-slate-700 text-white rounded-lg p-3 uppercase hover:opacity-95 disabled:opacity-80">
           {loading ? "Updating..." : "Update"}
         </button>
-      </form> 
+      </form>
 
       <div className="flex justify-between mt-5">
-        <span onClick={handleDeleteUser} className="text-red-700 cursor-pointer">Delete Account</span>
-        <span onClick={handleSignOut} className="text-red-700 cursor-pointer">Sign Out</span>
+        <span
+          onClick={handleDeleteUser}
+          className={`text-red-700 cursor-pointer ${deleteLoading ? "opacity-50 pointer-events-none" : ""}`}
+        >
+          {deleteLoading ? "Deleting..." : "Delete Account"}
+        </span>
+        <span
+          onClick={handleSignOut}
+          className={`text-red-700 cursor-pointer ${signOutLoading ? "opacity-50 pointer-events-none" : ""}`}
+        >
+          {signOutLoading ? "Signing Out..." : "Sign Out"}
+        </span>
       </div>
-      <p className="text-red-700 mt-5">{error ? error : ""}</p>
+
+      <p className="text-red-700 mt-5">{error || ""}</p>
       <p className="text-green-700 mt-5">{updateSuccess ? "User updated successfully" : ""}</p>
     </div>
   );

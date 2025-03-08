@@ -4,44 +4,38 @@ import dotenv from "dotenv";
 import cors from "cors";
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
+import listingRouter from "./routes/listing.route.js";
 import cookieParser from "cookie-parser";
 
 dotenv.config();
 
 mongoose
   .connect(process.env.MONGO)
-  .then(() => console.log("✅ Connected to MongoDB!"))
-  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("MongoDB Connection Error:", err));
 
 const app = express();
 
-// ✅ Enable CORS to prevent frontend request blocking
-app.use(cors({ origin: "http://localhost:5175", credentials: true }));
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
-
-// ✅ Parse JSON requests
 app.use(express.json());
-
 app.use(cookieParser());
 
-// ✅ Routes
 app.use("/api/user", userRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/listing", listingRouter);
 
-// ✅ Global Error Handling Middleware
 app.use((err, _req, res, _next) => {
-  console.error("❌ Server Error:", err);
+  console.error("Server Error:", err);
   res.status(err.statusCode || 500).json({
     success: false,
     message: err.message || "Internal Server Error",
   });
 });
 
-app.use(cors({
-  origin: "http://localhost:5175", // ✅ Ensure frontend URL is allowed
-  credentials: true, // ✅ Allow cookies
-  allowedHeaders: ["Content-Type", "Authorization"], // ✅ Allow token in headers
-}));
-
-
-app.listen(3000, () => console.log("🚀 Server is running on port 3000!"));
+const PORT = 3000;
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

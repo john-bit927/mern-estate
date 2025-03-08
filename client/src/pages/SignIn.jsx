@@ -13,7 +13,7 @@ export default function SignIn() {
   const dispatch = useDispatch();
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [isDisabled, setIsDisabled] = useState(false); // ✅ New state to disable button
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -27,49 +27,49 @@ export default function SignIn() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-  
+    setLoading(true); // ✅ Start loading
+
     try {
       dispatch(signInStart());
-      const res = await fetch("http://localhost:5175/api/auth/signin", { // ✅ Ensure backend port is correct
+      const res = await fetch("http://localhost:5173/api/auth/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-  
+
       const data = await res.json();
-      console.log("Signin response:", data); // 🔍 Debugging response
-  
+      console.log("Signin response:", data);
+
       if (!res.ok || !data.token) {
         throw new Error(data.message || "Failed to sign in");
       }
-  
+
       dispatch(signInSuccess(data));
-  
-      // ✅ Store token correctly
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-  
-      console.log("Token stored in localStorage:", data.token); // ✅ Debugging token storage
-  
+
+      console.log("Token stored in localStorage:", data.token);
+
       setSuccess("Login successful! Redirecting...");
-  
+
       setTimeout(() => {
+        setLoading(false); // ✅ Stop loading after 2 sec
         navigate("/");
       }, 2000);
-  
     } catch (err) {
       console.error("Signin error:", err.message);
       setError(err.message);
-    };
+      setLoading(false); // ✅ Ensure loading stops on error
+    }
   };
-  
+
   return (
     <div className="p-3 max-w-lg mx-auto">
       <h1 className="text-3xl text-center font-semibold my-7">Sign In</h1>
       {error && <p className="text-red-500 text-center">{error}</p>}
       {success && <p className="text-green-500 text-center">{success}</p>}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        
         <input
           type="email"
           name="email"
@@ -91,11 +91,11 @@ export default function SignIn() {
         <button
           type="submit"
           className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80"
-          disabled={isDisabled} // ✅ Disable button conditionally
+          disabled={loading} // ✅ Button disabled when loading
         >
-          {isDisabled ? "Signing In..." : "Sign in"} 
+          {loading ? "Signing In..." : "Sign in"}
         </button>
-        <OAuth/>
+        <OAuth />
       </form>
       <div className="flex gap-2 mt-5">
         <p>Don't have an account?</p>
